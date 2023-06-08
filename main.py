@@ -152,6 +152,12 @@ class SCoil:
             self.i_cur = (self.du / self.R) * (1 - math.exp(-(self.ti - self.t0) / self.tau)) + self.i0
         else:
             self.i_cur = 0
+            # test section
+            self.i0 = self.i_cur
+            self.u0 = self.i_cur * self.R
+            self.du = self.u_main - self.u0
+            self.t0 = self.ti
+            # test section
 
         self.ti = self.ti + self.t_solw / 1000
 
