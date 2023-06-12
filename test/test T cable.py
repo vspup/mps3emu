@@ -21,7 +21,8 @@ T = T0
 Tn = 0
 To = 0
 R = R0
-Qn = 0
+
+alf = 0.004
 
 tau = L/R
 
@@ -36,12 +37,13 @@ gt = []
 gT = []
 gTn = []
 gTo = []
-
+gR = []
+i=0
 
 job = True
 while job:
     # calc
-    i = ia
+
     Tn = ia*ia*R*kn*dt
     if T > T0:
         To = (T-T0)*ko*dt
@@ -49,27 +51,31 @@ while job:
         To = 0
 
     T = T + Tn - To
+    dR = alf*R*(T-T0)
+
+    R = R0 + dR
 
     gt.append(ti/60)
     gi.append(i)
     gT.append(T)
     gTn.append(Tn)
     gTo.append(-To)
-
+    gR.append(R)
 
     # update
     ti = ti + dt
+    i = i+1
 
     if ti > 1*tau:
         job = False
-        print('Irm = ', max(gi), 'If = ', i)
+        print('Irm = ', max(gR), 'If = ', i)
 
 
 
 plt.plot(gt, gT, 'r', gt, gTn, "r--", gt, gTo, "b--")
 plt.ylabel('T, C')
 
-#grU = plt.twinx()
-#grU.plot(gt, gTn, "b--")
+grU = plt.twinx()
+grU.plot(gt, gR, "b")
 
 plt.show()
