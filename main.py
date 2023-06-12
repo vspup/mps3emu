@@ -12,12 +12,14 @@ from time import sleep
 
 
 
-TOUT = 1 # s
+#TOUT = 1 # s
 
-TSOLW = 300 # ms
-TPID = 1000 # ms
-TUPD = 1
+TSOLW = 250 #ms
+Kaks = 1000 # 1 to 1000
+TUPD = 1000/Kaks
 
+
+#
 WB = 24
 WBR = 80
 
@@ -28,19 +30,22 @@ class SCoil:
     def __init__(self, rc, lc, master, txt):
 
         # coil parameters
-        self.u0 = 0
-        self.i0 = 0
-        self.R = rc
+        self.u0 = 0.0
+        self.i0 = 0.0
+        self.R0 = rc
+        self.R = self.R0
         self.L = lc
         self.tau = self.L / self.R
-        self.i_cur = 0
+        self.i_cur = float(0.0)
         self.ti = 0
         self.du = 0
         self.t0 = 0
         self.u_main = 0
         self.i_main = 0
+        self.Rl = self.R0
+        self.tl = 0
 
-        self.t_out = TOUT  # period update grafic
+        #self.t_out = TOUT  # period update grafic
 
         self.t_solw = TSOLW  # period solw ms
 
@@ -81,10 +86,11 @@ class SCoil:
         self.ax = self.fig.add_subplot(111)
         self.fig.subplots_adjust(bottom=0.25)
 
-        self.gi = [0]
-        self.gt = [0]
-        self.gu = [0]
-        self.guCoil = [0]
+        self.gi = [0]   # graf i main
+        self.gt = [0]   # graf t
+        self.gu = [0]   # graf v main
+        self.guCoil = [0]   # graf V coil
+        self.gR = [0]   # graf R
 
         self.grf, = self.ax.plot(self.gt, self.gi, 'r')
         self.ax.set_ylabel("I, A", color='r')
@@ -124,13 +130,16 @@ class SCoil:
                 self.gi.append(self.i_cur)
                 self.gt.append(self.ti)
                 self.gu.append(self.u_main)
+                self.gR.append(self.R/self.R0*100)
 
-                self.ic["text"] = str(self.i_cur) + ' A'
+                #self.ic["text"] = str(self.i_cur) + ' A'
+                self.ic["text"] = str(self.R/self.R0*100) + ' %'
                 self.uc["text"] = str(self.u_main) + ' V'
 
                 # grafic
                 #if (round(self.ti) % self.t_out == 0):
                 self.grf.set_data(self.gt, self.gi)
+                self.grf.set_data(self.gt, self.gR)
 
                 # Update axis
                 ax = self.canvas.figure.axes[0]
@@ -142,6 +151,7 @@ class SCoil:
                 self.grfUCoil.set_data(self.gt, self.guCoil)
 
                 self.canvas.draw()
+                print(self.R)
 
             # periodic update
             root.after(int(self.t_upd), self.cur)
@@ -149,8 +159,12 @@ class SCoil:
 
     def update_current(self):
         if self.fLeads.get() == True:
-            self.i_cur = (self.du / self.R) * (1 - math.exp(-(self.ti - self.t0) / self.tau)) + self.i0
+            self.R = self.R0 + (0.5*self.R0)*(self.i_cur*self.i_cur/740/740)*(1-math.exp(-(self.ti - self.t0) / 0.01)) + (self.Rl-self.R0)
+            self.i_cur = float((self.du / self.R) * (1 - math.exp(-(self.ti - self.t0) / self.tau)) + self.i0)
+            self.tl = self.ti
+            self.Rl = self.R
         else:
+            self.R = self.Rl - (0.5 * self.R0) * (1 - math.exp(-(self.ti - self.tl) / 100))
             self.i_cur = 0
             # test section
             self.i0 = self.i_cur
@@ -208,7 +222,7 @@ class Interfase:
         self.Coil = sCoil
 
         self.j = 0 # mark regimes ON j=1 OFF j=0
-        self.t_out = TOUT
+        #self.t_out = TOUT
 
         # current walue
         self.uu = 0
