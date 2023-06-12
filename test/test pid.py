@@ -3,7 +3,7 @@ import math
 import random
 
 # parameters coil
-Im = 740
+Im = 500
 Um = 15
 Pm = 3000
 R0 = 2.5/740
@@ -97,9 +97,19 @@ while job:
 
     ti = ti + dt
 
-    if ti > 5*tau:
+    if i > 0.98 * Im:
+        Im = 740
+        #kp = 0.2
+        #ki = 0.00002
+        #kd = 0.5
+
+    if ti > 3*tau:
         job = False
         print('Irm = ', max(gi), 'If = ', i)
+
+
+
+
 
 #plt.plot(gt, gi, 'r', gt, gup, 'r--')
 plt.plot(gt, gi, 'r', gt, gT, 'r--')
