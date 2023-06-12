@@ -4,17 +4,17 @@ import random
 
 # parameters coil
 Im = 740
-Um = 10
+Um = 15
 Pm = 3000
-R = 2.5/740
+R0 = 2.5/740
 L = 9.5
-tau = L/R
-print('Um = ' + str(Um) + '\tPm = ' + str(Pm) + '\tR = ' + str(R) + '\tL = ' + str(L)+ '\ttau = ' + str(tau))
+tau = L/R0
+print('Um = ' + str(Um) + '\tPm = ' + str(Pm) + '\tR = ' + str(R0) + '\tL = ' + str(L)+ '\ttau = ' + str(tau))
 
 dt = 0.1
-kp = 0.2
-ki = 0.00000483
-kd = 100
+kp = 0.25
+ki = 0.0000095
+kd = 500
 P = 0
 D = 0
 I = 0
@@ -29,24 +29,52 @@ u0 = 0
 ta = 0
 ti = 0
 
+# for T
+alf = 0.004
+kn = 70/740/740
+ko = 0.005
+T0 = 20
+T = T0
+
+R = R0
 
 gi = []
 gt = []
-gu = []
-gup = []
+guMain = []
+guCoil = []
+gT = []
+
 
 
 job = True
 while job:
-    i = ua/R * (1 - math.exp(-(ti - ta) / tau)) + ia
+
+    #calc i
+    i = ua / R * (1 - math.exp(-(dt) / tau)) + ia
+
+    Tn = ia * ia * R * kn * dt
+    if T > T0:
+        To = (T - T0) * ko * dt
+    else:
+        To = 0
+
+    T = T + Tn - To
+    dR = alf * R * (T - T0)
+
+    R = R0 + dR
+
+
+
+
     gt.append(ti)
     gi.append(i)
-    gu.append(u0)
+    guMain.append(u0)
+    gT.append(T)
 
 
     #pid
-    ii = (ua/R * (1 - math.exp(-(ti - ta) / tau)) + ia) * (random.randrange(99, 101, 10)/100)
-    err = Im - ii
+
+    err = Im - i
     P = err*kp
     I = I + err*dt
     D = (err-p_err)*dt
@@ -57,10 +85,10 @@ while job:
 
     if u0 > Um :
         u0=Um
-    if u0*ii > Pm:
-        u0 = Pm/ii
+    if u0*i > Pm:
+        u0 = Pm/i
 
-    gup.append(Pm / u0)
+    guCoil.append(u0-i*R)
 
     # update
     ua = u0 - i*R
@@ -69,15 +97,15 @@ while job:
 
     ti = ti + dt
 
-    if ti > 3*tau:
+    if ti > 5*tau:
         job = False
         print('Irm = ', max(gi), 'If = ', i)
 
 #plt.plot(gt, gi, 'r', gt, gup, 'r--')
-plt.plot(gt, gi, 'r')
+plt.plot(gt, gi, 'r', gt, gT, 'r--')
 plt.ylabel('i, A')
 
 grU = plt.twinx()
-grU.plot(gt, gu, "b")
+grU.plot(gt, guMain, "b", gt, guCoil, "b--")
 
 plt.show()

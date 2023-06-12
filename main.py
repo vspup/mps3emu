@@ -35,15 +35,15 @@ class SCoil:
         self.R0 = rc
         self.R = self.R0
         self.L = lc
-        self.tau = self.L / self.R
+        self.tau = self.L / self.R0
         self.i_cur = float(0.0)
         self.ti = 0
         self.du = 0
         self.t0 = 0
         self.u_main = 0
         self.i_main = 0
-        self.Rl = self.R0
-        self.tl = 0
+        self.T = 20
+        self.T0 = 20
 
         #self.t_out = TOUT  # period update grafic
 
@@ -118,7 +118,7 @@ class SCoil:
         self.i0 = self.i_cur
         self.u0 = self.i_cur * self.R
         self.du = self.u_main - self.u0
-        self.t0 = self.ti
+        #self.t0 = self.ti
 
 
     def cur(self):
@@ -132,22 +132,24 @@ class SCoil:
                 self.gu.append(self.u_main)
                 self.gR.append(self.R/self.R0*100)
 
-                #self.ic["text"] = str(self.i_cur) + ' A'
-                self.ic["text"] = str(self.R/self.R0*100) + ' %'
-                self.uc["text"] = str(self.u_main) + ' V'
+                self.ic["text"] = str(self.i_cur) + ' A'
+                #self.uc["text"] = str(self.u_main) + ' V'
+                self.uc["text"] = str(self.R/self.R0*100) + ' %'
 
                 # grafic
                 #if (round(self.ti) % self.t_out == 0):
                 self.grf.set_data(self.gt, self.gi)
-                self.grf.set_data(self.gt, self.gR)
+
 
                 # Update axis
                 ax = self.canvas.figure.axes[0]
                 ax.set_xlim(min(self.gt), self.ti)
                 ax.set_ylim(min(self.gi)-50, max(self.gi)+50)
+                #self.axU.set_ylim(min(self.gu)-1, max(self.gu)+1)
+                self.axU.set_ylim(min(self.gR) - 1, max(self.gR) + 1)
 
-                self.axU.set_ylim(min(self.gu)-1, max(self.gu)+1)
-                self.grfU.set_data(self.gt, self.gu)
+
+                self.grfU.set_data(self.gt, self.gR)
                 self.grfUCoil.set_data(self.gt, self.guCoil)
 
                 self.canvas.draw()
@@ -158,22 +160,33 @@ class SCoil:
 
 
     def update_current(self):
+        kn = 70 / 740 / 740
+        ko = 0.005
+        alf = 0.004
+        dt = self.t_solw/1000
+
         if self.fLeads.get() == True:
-            self.R = self.R0 + (0.5*self.R0)*(self.i_cur*self.i_cur/740/740)*(1-math.exp(-(self.ti - self.t0) / 0.01)) + (self.Rl-self.R0)
-            self.i_cur = float((self.du / self.R) * (1 - math.exp(-(self.ti - self.t0) / self.tau)) + self.i0)
+
+            self.i_cur = float((self.du / self.R) * (1 - math.exp(-(self.t_solw/1000) / self.tau))) + self.i_cur
             self.tl = self.ti
             self.Rl = self.R
         else:
-            self.R = self.Rl - (0.5 * self.R0) * (1 - math.exp(-(self.ti - self.tl) / 100))
-            self.i_cur = 0
-            # test section
-            self.i0 = self.i_cur
-            self.u0 = self.i_cur * self.R
-            self.du = self.u_main - self.u0
-            self.t0 = self.ti
-            # test section
 
-        self.ti = self.ti + self.t_solw / 1000
+            self.i_cur = 0
+
+        Tn = self.i_cur * self.i_cur * self.R * kn * dt
+        if self.T > 20:
+            To = (self.T - 20) * ko * dt
+        else:
+            To = 0
+
+        self.T = self.T + Tn - To
+        dR = alf * self.R * (self.T - 20)
+
+        self.R = self.R0 + dR
+
+
+        self.ti = self.ti + dt
 
 
     def ch_mode(self, j):
@@ -276,9 +289,9 @@ class Interfase:
         self.su['command'] = self.set_um
         self.si['command'] = self.set_im
 
-        self.mode.insert(END, '')
+        self.mode.insert(END, '1')
         self.i.insert(END, '')
-        self.u.insert(END, '')
+        self.u.insert(END, '10')
         self.um["text"] = str(self.Coil.u_main) + " V"
         self.im["text"] = str(self.Coil.i_main) + " A"
         self.gmode["text"] = str(self.Coil.job)

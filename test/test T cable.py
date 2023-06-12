@@ -22,11 +22,12 @@ Tn = 0
 To = 0
 R = R0
 
-alf = 0.004
+
 
 tau = L/R
 
-
+# for T
+alf = 0.004
 kn = 70/Im/Im
 ko = 0.005
 
